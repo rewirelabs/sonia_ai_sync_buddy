@@ -98,7 +98,6 @@ This is what makes SonIA a layer rather than a destination: the value travels to
 | **Cyanite** | Free-text semantic audio search to discover tracks, and segment-level emotional curve analysis over track duration to guide the Section Aligner. | Core |
 | **Spotify** | Audio Features (Energy, Valence) for the Vibe Check penalty and metadata enrichment. Wired in this build as a swappable adapter — replaceable per deployment. | Integrated (swappable) |
 | **LALAL.AI** | Stem separation for previewing windows under picture. | Core |
-| **ElevenLabs** | Voice brief intake (speak the brief to the agent). | Stretch |
 
 The reasoning layer that ties these together — brief normalisation, global hit suggestion, line-by-line emotional scoring and brand-safety evaluation — runs on Claude (Anthropic). Claude is not a competition partner; it is an additional engine we brought in to orchestrate the pipeline.
 
