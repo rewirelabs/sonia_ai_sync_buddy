@@ -14,7 +14,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SonIA | AI Sync Buddy",
+  title: "SonIA — The Sync Licensing Agent",
   description: "She doesn't search. She listens.",
 };
 
