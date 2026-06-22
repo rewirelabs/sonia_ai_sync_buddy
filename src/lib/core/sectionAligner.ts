@@ -8,19 +8,43 @@ export interface AlignmentResult {
   moneyLineTimestampMs: number;
   moneyLine?: string;
   fitRationale: string;
+  vibeWarning?: string;
 }
 
 export function alignSection(
   lines: RichSyncLine[],
   scores: LineScore[],
   targetArc: TargetArc,
-  trackDurationMs: number
+  trackDurationMs: number,
+  globalAudio?: { energy?: number, valence?: number }
 ): AlignmentResult {
   const windowDurationMs = targetArc.targetDurationSec * 1000;
   let bestFitScore = -1;
   let bestStartMs = 0;
   let bestMoneyLineMs = 0;
   let bestMoneyLineText = '';
+
+  // Calculate Vibe Penalty (Global Audio)
+  let vibePenalty = 1.0;
+  let vibeWarningText = undefined;
+  
+  // Fallback target energy if Claude didn't output it
+  let resolvedTargetEnergy = targetArc.targetEnergy;
+  if (resolvedTargetEnergy === undefined) {
+    if (targetArc.shape === 'build' || targetArc.shape === 'pulse') resolvedTargetEnergy = 0.85;
+    else if (targetArc.shape === 'steady') resolvedTargetEnergy = 0.6;
+    else resolvedTargetEnergy = 0.7;
+  }
+  
+  if (globalAudio?.energy !== undefined && resolvedTargetEnergy !== undefined) {
+    const energyDelta = Math.abs(globalAudio.energy - resolvedTargetEnergy);
+    if (energyDelta > 0.4) {
+      vibePenalty *= 0.55; // Severe penalty for completely wrong energy (e.g. Battiato for Action Brief)
+      vibeWarningText = `LOW AUDIO VIBE FIT (Track Energy: ${Math.round(globalAudio.energy*100)}% vs Target: ${Math.round(resolvedTargetEnergy*100)}%)`;
+    } else if (energyDelta > 0.25) {
+      vibePenalty *= 0.85; // Minor penalty
+    }
+  }
 
   // Step 1s through the track
   const stepMs = 1000;
@@ -43,7 +67,7 @@ export function alignSection(
 
     if (windowLines.length === 0) continue;
 
-    // Calculate fit (naive implementation for demo)
+    // Calculate raw averages
     const avgIntensity = windowLines.reduce((acc, curr) => acc + curr.s.intensity, 0) / windowLines.length;
     const avgThemeFit = windowLines.reduce((acc, curr) => acc + curr.s.themeFit, 0) / windowLines.length;
     
@@ -52,7 +76,15 @@ export function alignSection(
     // If the snippet chops a phrase abruptly, divide the score drastically so it's discarded
     const truncationPenalty = (isTruncatedAtStart || isTruncatedAtEnd) ? 0.3 : 1.0;
 
-    const fitScore = ((avgIntensity * 0.3) + (avgThemeFit * 0.5) + (Math.max(0, shapeMultiplier) * 0.2)) * truncationPenalty;
+    // Normalization to "sweeten" conservative LLM scores
+    const normalizedThemeFit = Math.pow(avgThemeFit, 0.5);
+    const normalizedIntensity = Math.pow(avgIntensity, 0.7);
+
+    // Weighted combination favoring theme (crucial for Sync) over intensity
+    const baseFit = (normalizedThemeFit * 0.7) + (normalizedIntensity * 0.2) + (Math.max(0, shapeMultiplier) * 0.1);
+
+    // Final boost to create a commercial WOW effect, applying global vibe penalty
+    const fitScore = Math.min(1.0, baseFit * 1.15) * truncationPenalty * vibePenalty;
 
       if (fitScore > bestFitScore) {
         bestFitScore = fitScore;
@@ -88,5 +120,6 @@ export function alignSection(
       moneyLineTimestampMs: bestMoneyLineMs,
       moneyLine: bestMoneyLineText,
       fitRationale: rationale,
+      vibeWarning: vibeWarningText
     };
 }

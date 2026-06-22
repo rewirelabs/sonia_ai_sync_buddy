@@ -26,12 +26,12 @@ export async function generateRationales(
     `[${i}] Title: "${t.title}" by ${t.artist} (ISRC: ${t.isrc}) - Fit Score: ${t.fitScore}/100 - Key Lyric: "${t.moneyLine}" - Language: ${t.lang}`
   ).join('\n');
 
-  const systemPrompt = `You are Fable, an expert Music Supervisor for advertising.
-Your job is to write a short, compelling argument (1-2 sentences) for why each selected track fits the creative brief.
-Use the Key Lyric ("Money Line") and the Fit Score to justify the choice.
-CRITICAL: Write the argument in the SAME LANGUAGE as the Brief. If the brief is in Italian, you MUST write in Italian.
-Tone: Professional, persuasive, advertising-focused.
+  const systemPrompt = `You are an expert Music Supervisor. You must write a brief, compelling rationale for WHY the selected sync window fits the creative brief.
+Write in a professional, persuasive, and empathetic tone.
 
+CRITICAL INSTRUCTION: You MUST write your response entirely in English, no matter what language the brief or the track is in.
+
+Provide your output as a JSON array of objects where the keys are the track isrc and the values are the rationale strings (max 2-3 sentences).
 Respond ONLY with a valid JSON array of objects. No markdown, no extra text.
 Schema:
 [

@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       console.log(`[Discovery] Claude suggested ${discoveryResult.tracks.length} tracks.`);
       // A. Process Claude's suggestions
       for (const sug of discoveryResult.tracks) {
+        console.log(`[Discovery] Resolving ISRC for AI suggestion: "${sug.title}" by ${sug.artist}`);
         const isrc = await findTrackIsrc(sug.title, sug.artist);
         if (isrc && !tracks.some(t => t.isrc === isrc)) {
           tracks.push({
@@ -59,8 +60,11 @@ export async function POST(req: Request) {
             title: sug.title,
             artist: sug.artist,
             durationMs: 180000,
-            lang
+            lang,
+            source: 'Claude AI'
           });
+        } else if (!isrc) {
+          console.log(`[Discovery] ❌ DROP [Claude AI]: Could not find ISRC for "${sug.title}" by ${sug.artist}`);
         }
       }
 
@@ -76,7 +80,8 @@ export async function POST(req: Request) {
               title: mt.title,
               artist: mt.artist,
               durationMs: 180000,
-              lang
+              lang: (mt as any).lang || lang,
+              source: 'Musixmatch Search'
             });
           }
         }
@@ -94,7 +99,8 @@ export async function POST(req: Request) {
             title: meta.title,
             artist: meta.artist,
             durationMs: 180000,
-            lang
+            lang,
+            source: 'Cyanite Audio Search'
           });
         }
       }
@@ -107,28 +113,55 @@ export async function POST(req: Request) {
 
     // Process each track
     for (const track of tracks) {
+      console.log(`\n🔍 Evaluating [${(track as any).source || 'Fixture'}] ${track.artist} - "${track.title}" (ISRC: ${track.isrc})`);
+
       // 3. Ephemeral Lyric Doc
       const doc = await getEphemeralLyricDoc(track.isrc);
-      if (!doc || doc.lines.length === 0) continue;
+      if (!doc || doc.lines.length === 0) {
+        console.log(`   ❌ SCARTATA: Testo sincronizzato (Subtitle/RichSync) non trovato nel database Musixmatch.`);
+        continue;
+      }
+      
+      // Update track language if musixmatch found a more accurate one
+      if (doc.lang) track.lang = doc.lang;
+
+      // Use translated lines for AI evaluation if available
+      const linesForEvaluation = doc.translatedLines || doc.lines;
 
       // 4. Spotify Enrichment (we need real duration before aligning)
       const enrichment = await enrichWithSpotify(track.isrc);
       const realDurationMs = (enrichment as any).durationMs || track.durationMs || 180000;
 
-      // 5. Score Lyric Curve
-      const scores = await scoreLyricCurve(doc.lines, targetArc);
+      // 5. Score Lyrics (using translation if available)
+      const scores = await scoreLyricCurve(linesForEvaluation, targetArc);
 
-      // 6. Align Section (Hero)
-      const alignment = alignSection(doc.lines, scores, targetArc, realDurationMs);
+      const globalAudio = {
+        energy: doc.mood?.energy ?? (enrichment as any).energy,
+        valence: doc.mood?.valence ?? (enrichment as any).valence
+      };
 
-      // 7. Safety check
+      // 6. Align Section (Hero) - we align using original lines to keep original timings, but scores are mapped
+      const alignment = alignSection(doc.lines, scores, targetArc, realDurationMs, globalAudio);
+
+      // 7. Safety check (using translation if available)
       const market = targetArc.targetMarkets?.[0] || 'Global';
-      const safetyVerdicts = await evaluateSafety(doc, targetArc.brandProfile, market);
+      const safetyVerdicts = await evaluateSafety({ ...doc, lines: linesForEvaluation }, targetArc.brandProfile, market);
 
       // Determine overall safety
       let safetyLevel = 'safe';
       if (safetyVerdicts.some(v => v.severity === 'high')) safetyLevel = 'unsafe';
       else if (safetyVerdicts.some(v => v.severity === 'med')) safetyLevel = 'caution';
+
+      if (safetyLevel === 'unsafe') {
+        console.log(`   ❌ SCARTATA: Brand Safety a rischio. Trovate parole esplicite o non adatte.`);
+        continue;
+      }
+
+      if (alignment.vibeWarning) {
+        console.log(`   ⚠️ PENALIZZATA: ${alignment.vibeWarning}`);
+      }
+      
+      console.log(`   ✅ APPROVATA: Fit Score = ${Math.round(alignment.fitScore * 100)}%`);
 
 
       let finalCurve = scores.map(s => s.intensity);
@@ -161,12 +194,19 @@ export async function POST(req: Request) {
       for (const track of fallbackTracks) {
         const doc = await getEphemeralLyricDoc(track.isrc);
         if (!doc || doc.lines.length === 0) continue;
+        if (doc.lang) track.lang = doc.lang;
+
+        const linesForEvaluation = doc.translatedLines || doc.lines;
         const enrichment = await enrichWithSpotify(track.isrc);
         const realDurationMs = (enrichment as any).durationMs || track.durationMs || 180000;
-        const scores = await scoreLyricCurve(doc.lines, targetArc);
-        const alignment = alignSection(doc.lines, scores, targetArc, realDurationMs);
+        const scores = await scoreLyricCurve(linesForEvaluation, targetArc);
+        const globalAudio = {
+          energy: doc.mood?.energy ?? (enrichment as any).energy,
+          valence: doc.mood?.valence ?? (enrichment as any).valence
+        };
+        const alignment = alignSection(doc.lines, scores, targetArc, realDurationMs, globalAudio);
         const market = targetArc.targetMarkets?.[0] || 'Global';
-        const safetyVerdicts = await evaluateSafety(doc, targetArc.brandProfile, market);
+        const safetyVerdicts = await evaluateSafety({ ...doc, lines: linesForEvaluation }, targetArc.brandProfile, market);
         let safetyLevel = 'safe';
         if (safetyVerdicts.some(v => v.severity === 'high')) safetyLevel = 'unsafe';
         else if (safetyVerdicts.some(v => v.severity === 'med')) safetyLevel = 'caution';

@@ -8,6 +8,8 @@ export interface TargetArc {
   languages: string[];
   targetDurationSec: number;
   brandProfile: string;
+  targetEnergy: number;
+  targetValence: number;
 }
 
 export interface LineScore {

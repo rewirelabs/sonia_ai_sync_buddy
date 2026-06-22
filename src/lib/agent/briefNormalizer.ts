@@ -14,6 +14,8 @@ export async function normalizeBrief(briefText: string): Promise<TargetArc> {
       languages: ['de', 'en', 'it'],
       targetDurationSec: 30,
       brandProfile: 'family automotive',
+      targetEnergy: 0.8,
+      targetValence: 0.6
     };
   }
 
@@ -30,7 +32,9 @@ Respond ONLY with a valid JSON object matching this schema:
   "targetMarkets": string[],
   "languages": string[],
   "targetDurationSec": number (usually 30),
-  "brandProfile": string
+  "brandProfile": string,
+  "targetEnergy": number (0.0 for very calm/acoustic, 1.0 for highly energetic/action),
+  "targetValence": number (-1.0 for sad/dramatic, 1.0 for very happy/uplifting)
 }`;
 
   const userPrompt = `Raw Brief: "${briefText}"`;

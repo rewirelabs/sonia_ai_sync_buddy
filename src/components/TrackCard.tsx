@@ -142,33 +142,35 @@ export function TrackCard({ track, rank }: TrackCardProps) {
           <span className="text-accent">◆ window {winLabel}</span>
           <span>{durLabel}</span>
         </div>
-        <div className="relative h-[44px] rounded-[9px] overflow-hidden bg-white/5 border border-white/10">
-          <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-            <defs>
-              <linearGradient id="sxSpectrum" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stopColor="#ff8a3d"></stop>
-                <stop offset="0.3" stopColor="#ff3d7f"></stop>
-                <stop offset="0.6" stopColor="#c63dff"></stop>
-                <stop offset="0.82" stopColor="#7b3dff"></stop>
-                <stop offset="1" stopColor="#3ddfff"></stop>
-              </linearGradient>
-              <linearGradient id="sxVert" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stopColor="#ff8a3d" stopOpacity="0.05"></stop>
-                <stop offset="1" stopColor="#ff3d7f" stopOpacity="0.55"></stop>
-              </linearGradient>
-            </defs>
-            <path d={areaPath} fill="url(#sxVert)"></path>
-            <polyline points={points} fill="none" stroke="url(#sxSpectrum)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round"></polyline>
-          </svg>
-          
-          <div className="absolute top-0 bottom-0 border-l border-r border-[#ff8a3d]/50 z-10 flex items-center justify-center overflow-hidden" style={{
-            left: `${winL}%`, width: `${winW}%`,
-            background: 'linear-gradient(180deg,rgba(255,138,61,0.11),rgba(255,61,127,0.06))',
-            boxShadow: 'inset 0 0 16px rgba(255,138,61,0.07)'
-          }}>
-            <span className="font-mono text-[8px] uppercase tracking-widest text-[#ff8a3d] opacity-60 whitespace-nowrap px-1">
-              {winW > 15 ? 'SYNC WINDOW' : ''}
-            </span>
+        <div className="relative h-[44px]">
+          <div className="absolute inset-0 rounded-[9px] overflow-hidden bg-white/5 border border-white/10">
+            <svg viewBox="0 0 100 42" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+              <defs>
+                <linearGradient id="sxSpectrum" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor="#ff8a3d"></stop>
+                  <stop offset="0.3" stopColor="#ff3d7f"></stop>
+                  <stop offset="0.6" stopColor="#c63dff"></stop>
+                  <stop offset="0.82" stopColor="#7b3dff"></stop>
+                  <stop offset="1" stopColor="#3ddfff"></stop>
+                </linearGradient>
+                <linearGradient id="sxVert" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0" stopColor="#ff8a3d" stopOpacity="0.05"></stop>
+                  <stop offset="1" stopColor="#ff3d7f" stopOpacity="0.55"></stop>
+                </linearGradient>
+              </defs>
+              <path d={areaPath} fill="url(#sxVert)"></path>
+              <polyline points={points} fill="none" stroke="url(#sxSpectrum)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round"></polyline>
+            </svg>
+            
+            <div className="absolute top-0 bottom-0 border-l border-r border-[#ff8a3d]/50 z-10 flex items-center justify-center overflow-hidden" style={{
+              left: `${winL}%`, width: `${winW}%`,
+              background: 'linear-gradient(180deg,rgba(255,138,61,0.11),rgba(255,61,127,0.06))',
+              boxShadow: 'inset 0 0 16px rgba(255,138,61,0.07)'
+            }}>
+              <span className="font-mono text-[8px] uppercase tracking-widest text-[#ff8a3d] opacity-60 whitespace-nowrap px-1">
+                {winW > 15 ? 'SYNC WINDOW' : ''}
+              </span>
+            </div>
           </div>
           
           <div className="absolute top-0 bottom-0 w-[1.5px] bg-[#ff3d7f]/85 z-20 group" style={{
@@ -224,6 +226,13 @@ export function TrackCard({ track, rank }: TrackCardProps) {
                   {safe ? 'Every line passed the ruleset. No explicit, drug or violence references.' : 'A line carries a risky image. Recommend a quick human sign-off before clearing.'}
                 </div>
               </div>
+
+              {track.alignment.vibeWarning && (
+                <div className="mt-3 rounded-[10px] p-[12px_14px] border" style={{ background: 'rgba(255,100,100,0.08)', borderColor: 'rgba(255,100,100,0.3)' }}>
+                  <div className="text-[13px] font-semibold text-[#ff6464] mb-[3px]">Audio Vibe Penalty</div>
+                  <div className="text-[12px] leading-[1.5] text-[#e9ecf3]/60">{track.alignment.vibeWarning}</div>
+                </div>
+              )}
 
               <div className="flex flex-col gap-[8px] mt-[14px]">
                 {/* LALAL AI BUTTON */}

@@ -43,11 +43,29 @@ export async function enrichWithSpotify(isrc: string): Promise<SpotifyEnrichment
     
     const track = searchData.tracks?.items?.[0];
     if (track) {
+      let energy = undefined;
+      let valence = undefined;
+      
+      try {
+        const featRes = await fetch(`https://api.spotify.com/v1/audio-features/${track.id}`, {
+          headers: { 'Authorization': `Bearer ${access_token}` }
+        });
+        if (featRes.ok) {
+          const featData = await featRes.json();
+          energy = featData.energy;
+          valence = featData.valence;
+        }
+      } catch(e) {
+        // fail silently if audio features missing
+      }
+
       return {
         coverUrl: track.album?.images?.[0]?.url,
         previewUrl: track.preview_url,
         spotifyId: track.id,
         durationMs: track.duration_ms,
+        energy,
+        valence
       };
     }
   } catch (e) {

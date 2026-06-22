@@ -113,7 +113,7 @@ export async function searchCyaniteByFreeText(brief: string) {
         freeTextSearch(
           searchText: $keyword,
           target: { spotify: {} },
-          first: 15
+          first: 30
         ) {
           ... on FreeTextSearchConnection {
             edges {
